@@ -1,0 +1,29 @@
+[
+	{
+		"id": "sort_video",
+		"type": "enum",
+		"label": "Sort Videos",
+		"values": [
+				"date",
+				"rating",
+				"popularity",
+				"length",
+				"views",
+				"pornstar"
+			],
+		"default": "date"
+	},
+	{
+		"id": "sort_pornstar",
+		"type": "enum",
+		"label": "Sort Pornstars",
+		"values": [
+				"name",
+				"popularity",
+				"rating",
+				"videos",
+				"date"
+			],
+		"default": "name"
+	}
+]
