@@ -19,12 +19,10 @@ def Start():
 	ObjectContainer.title1 = TITLE
 	ObjectContainer.art = R(ART)
 	DirectoryObject.thumb = R(ICON)
-	DirectoryObject.art = R(ART)
 	NextPageObject.thumb = R(ICON)
-	NextPageObject.art = R(ART)
 
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:17.0) Gecko/20100101 Firefox/17.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0'
 
 ####################################################################################################
 @handler('/video/4tube', TITLE, art=ART, thumb=ICON)
