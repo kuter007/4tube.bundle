@@ -1,6 +1,6 @@
 TITLE = '4tube'
 ART = 'art-default.jpg'
-ICON = 'icon-default.png'
+ICON = 'icon-default.jpg'
 BASE_URL = 'http://www.4tube.com'
 
 ALL_VIDEOS_URL = '%s/videos/data?subListAction=&sort=%%s&page=%%%%d' % BASE_URL
