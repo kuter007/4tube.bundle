@@ -13,22 +13,15 @@ RE_DURATION = Regex('(\d+)min (\d+)sec')
 ####################################################################################################
 def Start():
 
-	Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
-	Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
-
 	ObjectContainer.title1 = TITLE
-	ObjectContainer.art = R(ART)
-	DirectoryObject.thumb = R(ICON)
-	NextPageObject.thumb = R(ICON)
-
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
 
 ####################################################################################################
 @handler('/video/4tube', TITLE, art=ART, thumb=ICON)
 def MainMenu():
 
-	oc = ObjectContainer(view_group='List')
+	oc = ObjectContainer()
 
 	oc.add(DirectoryObject(key=Callback(BrowseAllVideos, title='Browse All Videos'), title='Browse All Videos'))
 	oc.add(DirectoryObject(key=Callback(PornstarsAZ, title='Pornstars A-Z'), title='Pornstars A-Z'))
@@ -48,7 +41,7 @@ def BrowseAllVideos(title):
 @route('/video/4tube/pornstars/alphabetically')
 def PornstarsAZ(title):
 
-	oc = ObjectContainer(title2=title, view_group='List')
+	oc = ObjectContainer(title2=title)
 
 	for char in list(String.UPPERCASE):
 		oc.add(DirectoryObject(
@@ -62,7 +55,7 @@ def PornstarsAZ(title):
 @route('/video/4tube/pornstars/{char}')
 def Pornstars(char):
 
-	oc = ObjectContainer(title2=char, view_group='List')
+	oc = ObjectContainer(title2=char)
 	url = PORNSTARS_AZ_URL % (char, Prefs['sort_pornstar'])
 
 	# Get the number of pages
@@ -85,7 +78,7 @@ def Pornstars(char):
 			oc.add(DirectoryObject(
 				key = Callback(Pornstar, name=name, url_name=name.lower().replace(' ', '-')),
 				title = name,
-				thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
+				thumb = thumb
 			))
 
 	return oc
@@ -101,7 +94,7 @@ def Pornstar(name, url_name):
 @route('/video/4tube/tags')
 def MostPopularTags(title):
 
-	oc = ObjectContainer(title2=title, view_group='List')
+	oc = ObjectContainer(title2=title)
 	tags = HTML.ElementFromURL(BASE_URL).xpath('//div[@class="tags"]//a[text()!=""]')
 
 	for t in tags:
@@ -126,7 +119,7 @@ def Tag(title, tag):
 @route('/video/4tube/videos', page=int)
 def GetVideos(url, title, page=1):
 
-	oc = ObjectContainer(title2=title, view_group='InfoList')
+	oc = ObjectContainer(title2=title)
 	html = HTML.ElementFromURL(url % page)
 	videos = html.xpath('//div[@class="videoInfo"]')
 
@@ -146,7 +139,7 @@ def GetVideos(url, title, page=1):
 			summary = summary,
 			duration = duration,
 			rating = rating,
-			thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
+			thumb = thumb
 		))
 
 	# Next page
