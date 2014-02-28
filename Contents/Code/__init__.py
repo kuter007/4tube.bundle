@@ -15,27 +15,29 @@ def Start():
 
 	ObjectContainer.title1 = TITLE
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'
 
 ####################################################################################################
 @handler('/video/4tube', TITLE, art=ART, thumb=ICON)
 def MainMenu():
 
-	oc = ObjectContainer()
+	oc = ObjectContainer(no_cache=True)
 
-	oc.add(DirectoryObject(key=Callback(BrowseAllVideos, title='Browse All Videos'), title='Browse All Videos'))
+	oc.add(DirectoryObject(key=Callback(AllVideos, title='Browse All Videos'), title='Browse All Videos'))
 	oc.add(DirectoryObject(key=Callback(PornstarsAZ, title='Pornstars A-Z'), title='Pornstars A-Z'))
 	oc.add(DirectoryObject(key=Callback(MostPopularTags, title='Most Popular Tags'), title='Most Popular Tags'))
-	oc.add(PrefsObject(title='Preferences', thumb=R('icon-prefs.png')))
+	oc.add(PrefsObject(title='Preferences'))
 
 	return oc
 
 ####################################################################################################
-@route('/video/4tube/videos/all')
-def BrowseAllVideos(title):
+@route('/video/4tube/allvideos')
+def AllVideos(title):
 
+	oc = ObjectContainer(title2=title)
 	url = ALL_VIDEOS_URL % Prefs['sort_video']
-	return GetVideos(url, title=title)
+	oc.extend(GetVideos(url))
+	return oc
 
 ####################################################################################################
 @route('/video/4tube/pornstars/alphabetically')
@@ -87,8 +89,10 @@ def Pornstars(char):
 @route('/video/4tube/pornstar/{url_name}/videos')
 def Pornstar(name, url_name):
 
+	oc = ObjectContainer(title2=name)
 	url = PORNSTAR_URL % (url_name, Prefs['sort_video'])
-	return GetVideos(url, title=name)
+	oc.extend(GetVideos(url))
+	return oc
 
 ####################################################################################################
 @route('/video/4tube/tags')
@@ -112,14 +116,16 @@ def MostPopularTags(title):
 @route('/video/4tube/tag/{tag}')
 def Tag(title, tag):
 
+	oc = ObjectContainer(title2=title)
 	url = TAGS_URL % (tag, Prefs['sort_video'])
-	return GetVideos(url, title=title)
+	oc.extend(GetVideos(url))
+	return oc
 
 ####################################################################################################
-@route('/video/4tube/videos', page=int)
-def GetVideos(url, title, page=1):
+@route('/video/4tube/getvideos', page=int)
+def GetVideos(url, page=1):
 
-	oc = ObjectContainer(title2=title)
+	oc = ObjectContainer()
 	html = HTML.ElementFromURL(url % page)
 	videos = html.xpath('//div[@class="videoInfo"]')
 
@@ -153,7 +159,7 @@ def GetVideos(url, title, page=1):
 
 	if page < pages:
 		oc.add(NextPageObject(
-			key = Callback(GetVideos, title=title, url=url, page=page+1),
+			key = Callback(GetVideos, url=url, page=page+1),
 			title = L('More...')
 		))
 
