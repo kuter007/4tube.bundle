@@ -3,176 +3,240 @@ ART = 'art-default.jpg'
 ICON = 'icon-default.jpg'
 BASE_URL = 'http://www.4tube.com'
 
-ALL_VIDEOS_URL = '%s/videos/data?subListAction=&sort=%%s&page=%%%%d' % BASE_URL
-PORNSTARS_AZ_URL = '%s/pornstars/%%s?sort=%%s&page=%%%%d' % BASE_URL
-PORNSTAR_URL = '%s/pornstars/%%s?sort=%%s&page=%%%%d' % BASE_URL
-TAGS_URL = '%s/find/tags/%%s?data=1&sort=%%s&page=%%%%d' % BASE_URL
-
-RE_DURATION = Regex('(\d+)min (\d+)sec')
-
 ####################################################################################################
 def Start():
 
 	ObjectContainer.title1 = TITLE
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.115 Safari/537.36'
 
 ####################################################################################################
 @handler('/video/4tube', TITLE, art=ART, thumb=ICON)
 def MainMenu():
 
-	oc = ObjectContainer(no_cache=True)
+	oc = ObjectContainer()
 
-	oc.add(DirectoryObject(key=Callback(AllVideos, title='Browse All Videos'), title='Browse All Videos'))
-	oc.add(DirectoryObject(key=Callback(PornstarsAZ, title='Pornstars A-Z'), title='Pornstars A-Z'))
-	oc.add(DirectoryObject(key=Callback(MostPopularTags, title='Most Popular Tags'), title='Most Popular Tags'))
-	oc.add(PrefsObject(title='Preferences'))
-
-	return oc
-
-####################################################################################################
-@route('/video/4tube/allvideos')
-def AllVideos(title):
-
-	oc = ObjectContainer(title2=title)
-	url = ALL_VIDEOS_URL % Prefs['sort_video']
-	oc.extend(GetVideos(url))
-	return oc
-
-####################################################################################################
-@route('/video/4tube/pornstars/alphabetically')
-def PornstarsAZ(title):
-
-	oc = ObjectContainer(title2=title)
-
-	for char in list(String.UPPERCASE):
-		oc.add(DirectoryObject(
-			key = Callback(Pornstars, char=char),
-			title = char
-		))
+	oc.add(DirectoryObject(key=Callback(Video), title='All videos'))
+	oc.add(DirectoryObject(key=Callback(Category), title='Categories'))
+	oc.add(DirectoryObject(key=Callback(ChannelList), title='Channels'))
+	oc.add(DirectoryObject(key=Callback(Pornstar), title='Pornstars'))
 
 	return oc
 
 ####################################################################################################
-@route('/video/4tube/pornstars/{char}')
-def Pornstars(char):
+@route('/video/4tube/video')
+def Video():
 
-	oc = ObjectContainer(title2=char)
-	url = PORNSTARS_AZ_URL % (char, Prefs['sort_pornstar'])
+	oc = ObjectContainer(title2='All videos')
+	nav = HTML.ElementFromURL(BASE_URL).xpath('//ul[contains(@class, "all-videos-nav")]/li')
 
-	# Get the number of pages
-	pages = HTML.ElementFromURL(url % 1, cacheTime=CACHE_1WEEK).xpath('//span[@class="pagination"]')
+	for item in nav:
 
-	if len(pages) < 1:
-		pages = 1
-	else:
-		pages = pages[0].xpath('./a[last()]')[0].get('href')
-		pages = int(pages.split('page=')[-1])
+		title = item.xpath('./a/@title')[0]
+		url = item.xpath('./a/@href')[0]
 
-	# Loop over all the pages to grab all pornstar names and info
-	for i in range (1, pages+1):
-		pornstars = HTML.ElementFromURL(url % i, cacheTime=CACHE_1WEEK).xpath('//div[@class="pornstarInfo_large"]')
-
-		for p in pornstars:
-			name = p.xpath('./span[contains(@class, "pornstar")]/a/text()')[0].strip()
-			thumb = p.xpath('./a/img/@src')[0].replace('/161x161.jpeg', '/300x300.jpeg')
-
-			oc.add(DirectoryObject(
-				key = Callback(Pornstar, name=name, url_name=name.lower().replace(' ', '-')),
-				title = name,
-				thumb = thumb
-			))
-
-	return oc
-
-####################################################################################################
-@route('/video/4tube/pornstar/{url_name}/videos')
-def Pornstar(name, url_name):
-
-	oc = ObjectContainer(title2=name)
-	url = PORNSTAR_URL % (url_name, Prefs['sort_video'])
-	oc.extend(GetVideos(url))
-	return oc
-
-####################################################################################################
-@route('/video/4tube/tags')
-def MostPopularTags(title):
-
-	oc = ObjectContainer(title2=title)
-	tags = HTML.ElementFromURL(BASE_URL).xpath('//div[@class="tags"]//a[text()!=""]')
-
-	for t in tags:
-		title = t.text.strip().title()
-		tag = t.get('href').split('/')[-1]
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
 
 		oc.add(DirectoryObject(
-			key = Callback(Tag, title=title, tag=tag),
+			key = Callback(VideoList, title=title, url=url),
 			title = title
 		))
 
 	return oc
 
 ####################################################################################################
-@route('/video/4tube/tag/{tag}')
-def Tag(title, tag):
+@route('/video/4tube/category')
+def Category():
 
-	oc = ObjectContainer(title2=title)
-	url = TAGS_URL % (tag, Prefs['sort_video'])
-	oc.extend(GetVideos(url))
+	oc = ObjectContainer(title2='Categories')
+	nav = HTML.ElementFromURL(BASE_URL).xpath('//ul[contains(@class, "categories-nav")]/li')
+
+	for item in nav:
+
+		title = item.xpath('./a/@title')[0]
+		url = item.xpath('./a/@href')[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		oc.add(DirectoryObject(
+			key = Callback(VideoList, title=title, url=url),
+			title = title
+		))
+
 	return oc
 
 ####################################################################################################
-@route('/video/4tube/getvideos', page=int)
-def GetVideos(url, page=1):
+@route('/video/4tube/pornstar')
+def Pornstar():
 
-	oc = ObjectContainer()
-	html = HTML.ElementFromURL(url % page)
-	videos = html.xpath('//div[@class="videoInfo"]')
+	oc = ObjectContainer(title2='Pornstars')
+	nav = HTML.ElementFromURL(BASE_URL).xpath('//ul[contains(@class, "order-alpha")]/li')
 
-	for v in videos:
-		name = v.xpath('./span[contains(@class, "pornstar")]/a/strong/text()')[0].strip()
-		video_url = v.xpath('./a/@href')[0]
-		thumb = v.xpath('./a/img/@src')[0].replace('/160x120/', '/320x240/')
-		summary = v.xpath('./a/img[@class="thumb"]/@title')[0].strip()
-		duration = v.xpath('./span[@class="info"]/span[@class="length"]/text()')[0]
-		duration = TimeToMs(duration)
-		rating = v.xpath('./span[@class="info"]/span[@class="rating"]//span[@class="full"]')
-		rating = float(len(rating) * 2)
+	for item in nav:
 
-		oc.add(VideoClipObject(
-			url = video_url,
+		title = item.xpath('./a/text()')[0].strip()
+		url = item.xpath('./a/@href')
+
+		if len(url) < 1:
+			continue
+		else:
+			url = url[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		oc.add(DirectoryObject(
+			key = Callback(PornstarList, title=title.lower(), url=url),
+			title = title
+		))
+
+	return oc
+
+####################################################################################################
+@route('/video/4tube/pornstar/{title}', page=int)
+def PornstarList(title, url, page=1):
+
+	oc = ObjectContainer(title2='Pornstars %s' % (title.upper()))
+
+	if not 'sort=name' in url:
+		if '?' in url:
+			url = '%s&sort=name' % (url)
+		else:
+			url = '%s?sort=name' % (url)
+
+	html = HTML.ElementFromURL(url, cacheTime=CACHE_1WEEK)
+	nav = html.xpath('//a[@class="thumb-link"]')
+
+	for item in nav:
+
+		name = item.xpath('./@title')[0]
+		thumb = item.xpath('.//img[@data-original]/@data-original')[0]
+		url = item.xpath('./@href')[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		oc.add(DirectoryObject(
+			key = Callback(VideoList, title=name, url=url),
 			title = name,
-			summary = summary,
-			duration = duration,
-			rating = rating,
 			thumb = thumb
 		))
 
-	# Next page
-	pages = html.xpath('//span[@class="pagination"]')
+	next_page = html.xpath('//link[@rel="next"]/@href')
 
-	if len(pages) < 1:
-		pages = 1
-	else:
-		pages = pages[0].xpath('./a[last()]')[0].get('href')
-		pages = int(pages.split('page=')[-1])
+	if len(next_page) > 0:
 
-	if page < pages:
-		oc.add(NextPageObject(
-			key = Callback(GetVideos, url=url, page=page+1),
-			title = L('More...')
-		))
+		url = next_page[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		if page%10 != 0:
+
+			oc.extend(PornstarList(title, url, page=page+1))
+
+		else:
+
+			oc.add(NextPageObject(
+				key = Callback(PornstarList, title=title, url=url, page=page+1),
+				title = L('More...')
+			))
 
 	return oc
 
 ####################################################################################################
-def TimeToMs(timecode):
+@route('/video/4tube/video/list', page=int)
+def VideoList(title, url, page=1):
 
-	seconds = 0
-	duration = list(RE_DURATION.findall(timecode)[0])
-	duration.reverse()
+	oc = ObjectContainer(title2=title)
+	html = HTML.ElementFromURL(url)
+	nav = html.xpath('//a[@class="thumb-link"]')
 
-	for i in range(0, len(duration)):
-		seconds += int(duration[i]) * (60**i)
+	for item in nav:
 
-	return seconds * 1000
+		title = item.xpath('./@title')[0]
+		thumb = item.xpath('.//img[@data-master]/@data-master')[0]
+
+		url = item.xpath('./@href')[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		if not '//www.4tube.com/videos' in url:
+			continue
+
+		oc.add(VideoClipObject(
+			title = title,
+			thumb = thumb,
+			url = url
+		))
+
+	next_page = html.xpath('//link[@rel="next"]/@href')
+
+	if len(next_page) > 0:
+
+		url = next_page[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		if page%5 != 0:
+
+			oc.extend(VideoList(title, url, page=page+1))
+
+		else:
+
+			oc.add(NextPageObject(
+				key = Callback(VideoList, title=title, url=url, page=page+1),
+				title = L('More...')
+			))
+
+	return oc
+
+####################################################################################################
+@route('/video/4tube/channel/list', page=int)
+def ChannelList(url='http://www.4tube.com/channels', page=1):
+
+	oc = ObjectContainer(title2='Channels')
+
+	html = HTML.ElementFromURL(url, cacheTime=CACHE_1WEEK)
+	nav = html.xpath('//a[@class="thumb-link"]')
+
+	for item in nav:
+
+		name = item.xpath('./@title')[0]
+		thumb = item.xpath('.//img[@data-original]/@data-original')[0]
+		url = item.xpath('./@href')[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		oc.add(DirectoryObject(
+			key = Callback(VideoList, title=name, url=url),
+			title = name,
+			thumb = thumb
+		))
+
+	next_page = html.xpath('//link[@rel="next"]/@href')
+
+	if len(next_page) > 0:
+
+		url = next_page[0]
+
+		if not url.startswith('http://'):
+			url = '%s/%s' % (BASE_URL, url.lstrip('/'))
+
+		if page%10 != 0:
+
+			oc.extend(ChannelList(url, page=page+1))
+
+		else:
+
+			oc.add(NextPageObject(
+				key = Callback(ChannelList, url=url, page=page+1),
+				title = L('More...')
+			))
+
+	return oc
